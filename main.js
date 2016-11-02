@@ -2,6 +2,7 @@ var vorpal = require('vorpal');
 var chalk = vorpal().chalk;
 var _ = require('underscore');
 var os = require('os');
+var vm = require('vm');
 
 var user = process.env.USER
 if (os.platform() === "win32") {
@@ -130,8 +131,13 @@ var modeJs = (command, fn) => {
   run(command, data => {
     var structuredOp = getStructured(data);
     fn = fn.replace('console.log', 'awkward.log.bind(awkward)');
+    const sandbox = { structuredOp, awkward };
+    const script = new vm.Script(`structuredOp.${fn}`);
+    const context = new vm.createContext(sandbox);
+
     try {
-      eval(`structuredOp.${fn}`);
+      script.runInContext(context);
+      // eval(`structuredOp.${fn}`);
     } catch(error) {
       awkward.log(chalk.red(error));
     }
